@@ -1,0 +1,38 @@
+---
+# Ansible playbook for configuring static site in S3
+
+- hosts: 127.0.0.1
+  connection: local
+  vars:
+    buckets:
+      - name: colinhoglund.com
+        config: '{"IndexDocument":{"Suffix":"index.html"}}'
+      - name: www.colinhoglund.com
+        config: '{"RedirectAllRequestsTo": {"HostName": "colinhoglund.com"}}'
+    bucket_policy:
+      '{"Version":"2012-10-17",
+        "Statement":[{
+      	"Sid":"PublicReadForGetBucketObjects",
+              "Effect":"Allow",
+      	  "Principal": "*",
+            "Action":["s3:GetObject"],
+            "Resource":["arn:aws:s3:::colinhoglund.com/*"
+            ]
+          }
+        ]}'
+  tasks:
+    - name: Create colinhoglund.com S3 buckets
+      s3:
+        bucket: "{{item.name}}"
+        mode: create
+      with_items: buckets
+
+    - name: Configure static hosting
+      command: "aws s3api put-bucket-website --bucket {{item.name}} --website-configuration {{item.config | to_json}}"
+      with_items: buckets
+
+    - name: Copy site files
+      command: aws s3 cp --recursive site/ s3://colinhoglund.com/
+
+    - name: Configure read-only bucket policy
+      command: "aws s3api put-bucket-policy --bucket colinhoglund.com --policy {{bucket_policy | to_json}}"
