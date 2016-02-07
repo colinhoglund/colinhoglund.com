@@ -1,2 +1,2 @@
 # colinhoglund.com
-colinhoglund.com static site files and ansible playbook
+http://colinhoglund.com static site files and ansible playbook
